@@ -99,7 +99,7 @@ select option{background:#1a1a22}
 
 /* Scanning */
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.spinner{animation:spin 1.4s linear infinite;display:inline-block;color:#c8f04e;font-size:44px}
+.spinner{animation:spin 1.4s linear infe;display:inline-block;color:#c8f04e;font-size:44px}
 
 /* Insights */
 .insight{border-left:3px solid;padding:11px 13px;border-radius:0 10px 10px 0;background:rgba(255,255,255,.03);margin-bottom:9px}
@@ -880,7 +880,7 @@ function saveTxEdit(){
   const fecha=document.getElementById("te-fecha").value;
   const cuentaId=document.getElementById("te-cuenta")?.value||null;
   const categoria=document.getElementById("te-cat")?.value||"Otros";
-  if(!desc||!Number.isFinite(monto)||monto<=0||!fecha){showToast("Completa todos los campos");return;}
+  if(!desc||!Number.isFe(monto)||monto<=0||!fecha){showToast("Completa todos los campos");return;}
   Object.assign(t,{tipo:editTipo,descripcion:desc,monto,fecha,cuentaId,categoria:editTipo==="egreso"?categoria:null});
   save();closeTxEdit();renderCurrentPage();showToast("✓ Movimiento actualizado");expandedTx=null;
 }
@@ -1057,7 +1057,7 @@ function confirmManual(){
   const fecha=document.getElementById("m-fecha").value;
   const cuentaId=document.getElementById("m-cuenta")?.value||null;
   const categoria=document.getElementById("m-cat")?.value||"Otros";
-  if(!desc||!Number.isFinite(monto)||monto<=0||!fecha){showToast("Completa todos los campos");return;}
+  if(!desc||!Number.isFe(monto)||monto<=0||!fecha){showToast("Completa todos los campos");return;}
   txs.push({id:nextId++,tipo:manualTipo,descripcion:desc,monto,fecha,categoria:manualTipo==="egreso"?categoria:null,cuentaId});
   save();closeManual();renderCurrentPage();showToast("✓ Movimiento guardado");
 }
@@ -1230,7 +1230,58 @@ load();
 loadCats();
 selectedColor=ACC_COLORS[0];
 renderDashboard();
+tryLoadSharedFileFromCache();  
 </script>
+
+async function tryLoadSharedFileFromCache() {
+  try {
+    const params = new URLSearchParams(location.search);
+    if (params.get("shared") !== "1") return;
+
+    const cache = await caches.open("finanzas-shared");
+    const metaRes = await cache.match("./__shared_meta__");
+    const fileRes = await cache.match("./__shared_file__");
+
+    if (!metaRes || !fileRes) return;
+
+    const meta = await metaRes.json();
+    const blob = await fileRes.blob();
+
+    // Limpiamos para no re-procesar al refrescar
+    await cache.delete("./__shared_meta__");
+    await cache.delete("./__shared_file__");
+
+    // Convertimos a base64 igual que tu file-input
+    const base64 = await blobToBase64(blob);
+
+    const isPdf = (meta.type || "").includes("pdf");
+    scanState.fileType = isPdf ? "pdf" : "image";
+    scanState.fileData = { base64, mediaType: meta.type || (isPdf ? "application/pdf" : "image/*") };
+    scanState.preview = (!isPdf && blob.type.startsWith("image/")) ? URL.createObjectURL(blob) : null;
+    scanState.stage = "ready";
+
+    // Abre la UI de scan y ya deja el archivo listo
+    document.getElementById("scan-overlay").style.display = "flex";
+    renderScan();
+
+    // Opcional: auto-analizar
+    // analyzeScan();
+
+    // Limpia el querystring en la barra
+    history.replaceState({}, "", location.pathname);
+  } catch (e) {
+    // no pasa nada
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1]);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
 
 <!-- ═══ CATEGORY SHEET ════════════════════════════════════════════════════ -->
 <div id="cat-overlay" class="overlay" style="display:none" onclick="if(event.target===this)closeCatSheet()">
