@@ -56,3 +56,46 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+// --- Share Target handler (Android/Chrome PWA) ---
+// Intercepta el POST del "Compartir" y guarda el archivo para que index.html lo lea.
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // Cambiá el path si usás otro action
+  if (url.pathname.endsWith("/share-target") && event.request.method === "POST") {
+    event.respondWith((async () => {
+      try {
+        const formData = await event.request.formData();
+        const file = formData.get("file"); // coincide con params.files[0].name en manifest
+
+        if (!file) {
+          return Response.redirect("./?shared=0", 303);
+        }
+
+        // Guardamos el archivo en Cache Storage como Response
+        const cache = await caches.open("finanzas-shared");
+        const meta = {
+          name: file.name || "archivo",
+          type: file.type || "application/octet-stream",
+          size: file.size || 0,
+          ts: Date.now()
+        };
+
+        await cache.put(
+          new Request("./__shared_meta__"),
+          new Response(JSON.stringify(meta), { headers: { "Content-Type": "application/json" } })
+        );
+
+        await cache.put(
+          new Request("./__shared_file__"),
+          new Response(file, { headers: { "Content-Type": meta.type } })
+        );
+
+        // Redirige a la app (GET) para que pueda leer desde cache
+        return Response.redirect("./?shared=1", 303);
+      } catch (e) {
+        return Response.redirect("./?shared=0", 303);
+      }
+    })());
+  }
+});
