@@ -2,20 +2,24 @@
   "name": "Finanzas Personal",
   "short_name": "Finanzas",
   "description": "Control de ingresos, egresos y cuentas bancarias personales",
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "share_target": {
-  "action": "/finanzas/",
-  "method": "POST",
-  "enctype": "multipart/form-data",
-  "params": {
-    "files": [
-     {
-      "name": "pdf",
-      "accept": ["application/pdf"]
-     }
-    ]
-   }
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            "application/pdf",
+            "image/*"
+          ]
+        }
+      ]
+    }
   }
   "background_color": "#0f0f13",
   "theme_color": "#0f0f13",
